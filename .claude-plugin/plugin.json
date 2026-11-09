@@ -1,0 +1,60 @@
+{
+  "name": "lot-map",
+  "version": "0.1.0",
+  "description": "A live map beside the chat: memory, files, shell, web, model, agents, skills and hooks light up as they are used",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "language": {
+      "type": "string",
+      "title": "Language",
+      "options": [
+        "en",
+        "ru"
+      ],
+      "default": "en",
+      "description": "The language of the labels on the map."
+    },
+    "coreName": {
+      "type": "string",
+      "title": "Name at the centre",
+      "default": "CLAUDE",
+      "description": "What the circle in the middle of the map says, up to ten characters."
+    },
+    "memoryServers": {
+      "type": "string",
+      "multiple": true,
+      "title": "Memory servers",
+      "default": [
+        "memory"
+      ],
+      "description": "MCP servers whose tools light the Memory station."
+    },
+    "memoryCommands": {
+      "type": "string",
+      "multiple": true,
+      "title": "Memory commands",
+      "default": [],
+      "description": "Shell commands or scripts that light the Memory station, matched by how the name starts."
+    },
+    "memoryPaths": {
+      "type": "string",
+      "multiple": true,
+      "title": "Memory paths",
+      "default": [],
+      "description": "Parts of a path that make a file a memory. Claude Code's own memory folder always counts."
+    },
+    "memoryLabels": {
+      "type": "string",
+      "multiple": true,
+      "title": "Memory labels",
+      "default": [],
+      "description": "Short names for memory tools, each written as tool=name. A tool without one goes by its own name."
+    },
+    "hookRecords": {
+      "type": "boolean",
+      "title": "Hooks add numbered records",
+      "default": false,
+      "description": "Turn on if a hook of yours adds memory records numbered like [#123]: the map then shows them on the Memory station, by number only."
+    }
+  }
+}

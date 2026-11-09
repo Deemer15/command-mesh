@@ -1,0 +1,12 @@
+{
+  "name": "lot-map",
+  "owner": {
+    "name": "alexeyw"
+  },
+  "plugins": [
+    {
+      "name": "lot-map",
+      "source": "./"
+    }
+  ]
+}
