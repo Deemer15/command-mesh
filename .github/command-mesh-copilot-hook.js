@@ -2,63 +2,75 @@ const fs = require('fs')
 const path = require('path')
 
 const kind = process.argv[2] || 'event'
-let raw = ''
-try { raw = fs.readFileSync(0, 'utf8') } catch {}
-let event = {}
-try { event = JSON.parse(raw) } catch {}
 
-const value = (...values) => values.find(v => typeof v === 'string' && v.trim()) || ''
-const tool = value(event.toolName, event.tool_name, event.tool, process.env.COPILOT_TOOL_NAME)
-const prompt = value(event.prompt, process.env.COPILOT_USER_PROMPT)
-const model = extractModel(event, raw) || value(
-  event.model,
-  event.modelName,
-  event.model_name,
-  event.selectedModel,
-  event.model_id,
-  process.env.COPILOT_MODEL,
-)
-const label = kind === 'prompt' ? 'new message'
-  : kind === 'agent-stop' ? 'answer ready'
-  : kind === 'session-start' ? 'session started'
-  : kind === 'error' ? 'agent error'
-  : tool || kind
-const station = kind === 'prompt' ? 'you' : kind === 'agent-stop' ? 'model'
-  : kind === 'error' ? 'hooks' : classify(tool, event)
-const status = kind === 'tool-start' ? 'run' : kind === 'error' ? 'err' : 'ok'
-const root = process.cwd()
-const stateFile = path.join(root, '.kiro', 'command-mesh', 'state.json')
-let state = { entries: [], counts: {} }
-try { state = JSON.parse(fs.readFileSync(stateFile, 'utf8')) } catch {}
-const now = Date.now()
-const entry = {
-  id: `${now.toString(36)}${Math.random().toString(36).slice(2, 7)}`,
-  provider: 'copilot',
-  station,
-  label: sanitize(label),
-  status,
-  startedAt: now,
-  ...(status === 'run' ? {} : { endedAt: now }),
+// Telemetry must never become a permission gate. Copilot fails closed when a
+// preToolUse command exits non-zero, so recording is deliberately best effort.
+try { recordTelemetry(kind) } catch {}
+if (kind === 'tool-start') {
+  process.stdout.write(JSON.stringify({ permissionDecision: 'allow' }))
 }
-state.entries = [...(state.entries || []), entry].slice(-80)
-state.counts = { ...(state.counts || {}), [station]: (state.counts?.[station] || 0) + 1 }
-state.provider = 'COPILOT'
-if (model) {
-  state.model = sanitize(model)
-  state.models = { ...(state.models || {}), copilot: state.model }
+
+function recordTelemetry(eventKind) {
+  let raw = ''
+  try { raw = fs.readFileSync(0, 'utf8') } catch {}
+  let event = {}
+  try { event = JSON.parse(raw) } catch {}
+
+  const value = (...values) => values.find(v => typeof v === 'string' && v.trim()) || ''
+  const tool = value(event.toolName, event.tool_name, event.tool, process.env.COPILOT_TOOL_NAME)
+  const model = extractModel(event, raw) || value(
+    event.model,
+    event.modelName,
+    event.model_name,
+    event.selectedModel,
+    event.model_id,
+    process.env.COPILOT_MODEL,
+  )
+  const label = eventKind === 'prompt' ? 'new message'
+    : eventKind === 'agent-stop' ? 'answer ready'
+    : eventKind === 'session-start' ? 'session started'
+    : eventKind === 'error' ? 'agent error'
+    : tool || eventKind
+  const station = eventKind === 'prompt' ? 'you' : eventKind === 'agent-stop' ? 'model'
+    : eventKind === 'error' ? 'hooks' : classify(tool, event)
+  const status = eventKind === 'tool-start' ? 'run' : eventKind === 'error' ? 'err' : 'ok'
+  const stateFile = path.join(process.cwd(), '.kiro', 'command-mesh', 'state.json')
+  let state = { entries: [], counts: {} }
+  try { state = JSON.parse(fs.readFileSync(stateFile, 'utf8')) } catch {}
+  const now = Date.now()
+  const entry = {
+    id: `${now.toString(36)}${Math.random().toString(36).slice(2, 7)}`,
+    provider: 'copilot',
+    station,
+    label: sanitize(label),
+    status,
+    startedAt: now,
+    ...(status === 'run' ? {} : { endedAt: now }),
+  }
+  state.entries = [...(state.entries || []), entry].slice(-80)
+  state.counts = { ...(state.counts || {}), [station]: (state.counts?.[station] || 0) + 1 }
+  state.provider = 'COPILOT'
+  if (model) {
+    state.model = sanitize(model)
+    state.models = { ...(state.models || {}), copilot: state.model }
+  }
+  fs.mkdirSync(path.dirname(stateFile), { recursive: true })
+  writeStateBestEffort(stateFile, JSON.stringify(state))
 }
-fs.mkdirSync(path.dirname(stateFile), { recursive: true })
-const temporary = `${stateFile}.${process.pid}.tmp`
-const serialized = JSON.stringify(state)
-for (let attempt = 0; attempt < 4; attempt++) {
+
+function writeStateBestEffort(stateFile, serialized) {
+  const temporary = `${stateFile}.${process.pid}.${Date.now()}.tmp`
   try {
-    fs.writeFileSync(`${temporary}.${attempt}`, serialized)
-    fs.renameSync(`${temporary}.${attempt}`, stateFile)
-    break
-  } catch (error) {
-    if (attempt === 3) {
+    fs.writeFileSync(temporary, serialized)
+    try {
+      fs.renameSync(temporary, stateFile)
+      return
+    } catch {
+      // Windows does not atomically replace an existing destination with rename.
       fs.writeFileSync(stateFile, serialized)
     }
+  } finally {
+    try { fs.unlinkSync(temporary) } catch {}
   }
 }
 
