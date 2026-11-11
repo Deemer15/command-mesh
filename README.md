@@ -186,7 +186,7 @@ Each hook closes only entries it created (marked with a `source` field), so writ
 
 - **File-watcher attribution.** Workspace file changes are tagged with whichever provider wrote last, not the agent that made the change. Windows may also report `change` events for files that were only read.
 - **Kiro on Auto.** When Kiro's model is set to Auto, the server picks the model and nothing on disk records which one, so the `KIRO` core shows `auto`.
-- **Two editors, one workspace.** The Kiro usage reader and the presence check run in every window, since they publish the same values. Only one window per workspace runs the Copilot and Codex stream readers and the disk watcher (whoever holds `.kiro/command-mesh/bridge.lock`). Terminal commands and document saves are still recorded by each window for its own activity.
+- **Two editors, one workspace.** The Kiro usage reader and the presence check run in every window, since they publish the same values. Only one window per workspace runs the Copilot and Codex stream readers and the disk watcher (whoever holds `.kiro/command-mesh/bridge.lock`). The other windows retry every 15 seconds, so when that window closes or crashes another one takes over. Events in that short gap are not recorded. Terminal commands and document saves are still recorded by each window for its own activity.
 
 ## Concurrency
 

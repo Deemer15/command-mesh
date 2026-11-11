@@ -188,7 +188,6 @@ function activate(context) {
     await vscode.env.openExternal(vscode.Uri.parse(`http://127.0.0.1:${address.port}/`))
   }
   const folder = vscode.workspace.workspaceFolders?.[0]
-  const bridgeLock = folder ? acquireBridgeLock(folder.uri.fsPath) : undefined
   // The Kiro usage reader and presence check publish the same values from any window and only write
   // when something changes, so every window runs them. An older window holding bridge.lock can then
   // never hide them.
@@ -198,19 +197,36 @@ function activate(context) {
     context.subscriptions.push(kiroUsageBridge)
     context.subscriptions.push(presenceBridge)
   }
-  if (folder && bridgeLock) {
-    context.subscriptions.push(bridgeLock)
-    copilotBridge = startCopilotEventBridge(folder.uri.fsPath)
-    codexBridge = startCodexEventBridge(folder.uri.fsPath)
-    context.subscriptions.push(copilotBridge)
-    context.subscriptions.push(codexBridge)
-    diskWatcher = fs.watch(folder.uri.fsPath, { recursive: true, persistent: false }, (event, filename) => {
-      if (!filename) return
-      const relative = String(filename).replace(/\\/g, '/')
-      if (shouldIgnoreWorkspaceFile(relative)) return
-      recordFilesystemEvent(event, folder.uri.fsPath, relative)
-    })
-    context.subscriptions.push({ dispose: () => diskWatcher?.close() })
+  if (folder) {
+    // Only the window holding bridge.lock runs the Copilot and Codex readers and the disk watcher.
+    // A window that starts while another holds it keeps trying, so the readers move over when that
+    // window closes or crashes instead of stopping for good.
+    let lockRetry
+    const startSharedReaders = () => {
+      const bridgeLock = acquireBridgeLock(folder.uri.fsPath)
+      if (!bridgeLock) return false
+      clearInterval(lockRetry)
+      context.subscriptions.push(bridgeLock)
+      copilotBridge = startCopilotEventBridge(folder.uri.fsPath)
+      codexBridge = startCodexEventBridge(folder.uri.fsPath)
+      context.subscriptions.push(copilotBridge)
+      context.subscriptions.push(codexBridge)
+      try {
+        diskWatcher = fs.watch(folder.uri.fsPath, { recursive: true, persistent: false }, (event, filename) => {
+          if (!filename) return
+          const relative = String(filename).replace(/\\/g, '/')
+          if (shouldIgnoreWorkspaceFile(relative)) return
+          recordFilesystemEvent(event, folder.uri.fsPath, relative)
+        })
+      } catch {}
+      context.subscriptions.push({ dispose: () => diskWatcher?.close() })
+      return true
+    }
+    if (!startSharedReaders()) {
+      lockRetry = setInterval(startSharedReaders, 15000)
+      lockRetry.unref?.()
+      context.subscriptions.push({ dispose: () => clearInterval(lockRetry) })
+    }
   }
 }
 
