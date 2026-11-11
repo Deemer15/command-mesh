@@ -3,8 +3,10 @@
 Live visual telemetry for Codex, Copilot, Kiro, and other coding agents. Command Mesh renders prompts, tools, files, terminals, browser activity, subagents, and model state as a dockable animated operations grid.
 
 <p align="center">
-  <img src="command-mesh-demo-v2.gif" alt="Command Mesh visualizing live Copilot, Codex, and Kiro activity" width="100%">
+  <img src="docs/command-mesh-demo.gif" alt="Command Mesh web dashboard: Copilot, Codex, and Kiro working at once, with colour-coded packets, a Kiro credits burst, and activity bars stacked by agent" width="100%">
 </p>
+
+<p align="center"><a href="docs/command-mesh-demo.mp4">Watch the full-resolution video (MP4)</a></p>
 
 <p align="center"><em>One live command surface. Every agent, tool, and signal in motion.</em></p>
 
@@ -217,10 +219,11 @@ Remove-Item .kiro\command-mesh\state.json.*.tmp -ErrorAction SilentlyContinue
 | `map-renderer.js` | Shared setup and classification helpers. Generated bundle of `hooks/map.ts` and `hooks/text.ts` from upstream Lot Map; edit the TypeScript sources and rebuild rather than editing this file by hand |
 | `dashboard.css` | Styles for the panel's telemetry section and the web dashboard |
 | `test/harness.js` | Scripted multi-agent session with checks. See [Development](#development) |
-| `command-mesh-demo-v2.gif` | The demo animation at the top of this README |
+| `docs/` | The demo animation at the top of this README and its full-resolution MP4 |
 | `.kiro/` | Kiro hook config and hook script |
 | `.github/` | Copilot CLI hook config and hook script |
-| `.claude-plugin/`, `hooks/`, `types/`, `docs/` | Original Lot Map plugin for Claude Code and its screenshots, kept from upstream. Not packaged into the VSIX |
+| `hooks/map.ts`, `hooks/text.ts`, `types/` | TypeScript sources of `map-renderer.js`, from upstream Lot Map |
+| `.claude-plugin/`, `hooks/register.tsx`, `hooks/hooks.json`, `hooks/command-mesh.test.tsx` | Original Lot Map plugin for Claude Code, kept from upstream. Not packaged into the VSIX |
 | `package-vsix.ps1` | Builds the VSIX without `vsce` |
 
 ## Development
