@@ -34,6 +34,15 @@ Command Mesh is based on the original [Lot Map](https://github.com/alexeyw/lot-m
 5. Keep the workspace hook file [.kiro/hooks/command-mesh.json](.kiro/hooks/command-mesh.json) enabled. You can check it in the **Agent Hooks** section of the Kiro explorer.
 6. Run **Command Mesh: Open Activity Grid** from the Command Palette.
 
+Steps 3 and 4 can also be done from a terminal. Installing into both editors this way also replaces an older build in place:
+
+```powershell
+kiro --install-extension .\command-mesh-0.1.0.vsix --force
+code --install-extension .\command-mesh-0.1.0.vsix --force
+```
+
+Reload each window afterwards. A window that has not reloaded keeps running the previous build.
+
 `F5` launches an extension-host window from [.vscode/launch.json](.vscode/launch.json), but Kiro's debugger does not always register local workspace extensions. Installing the VSIX avoids that limitation.
 
 ## Install in VS Code
@@ -69,7 +78,7 @@ Several independent writers append events to one shared file, `.kiro/command-mes
 
 Kiro's hook payload does not include the model, so the Kiro hook reads `modelId` from the matching `~/.kiro/sessions/*/<session_id>/session.json`. When Kiro is set to **Auto**, that file stores `auto` and the server picks the model, so the `KIRO` core shows `auto`.
 
-The file keeps the last 80 events plus a running count per station. The centre of the grid is a three-provider bus with separate `COPILOT`, `CODEX`, and `KIRO` cores. Each core shows its own model name, event count, and live or idle state.
+The file keeps the last 80 events plus a running count per station. The centre of the grid is a three-provider bus with separate `COPILOT`, `CODEX`, and `KIRO` cores. Each core shows its own model name, how many of the buffered events are its own, and whether it is working, idle, or offline.
 
 Existing `.kiro/lot-map/state.json` data from Lot Map is copied to the new location automatically.
 
@@ -83,7 +92,7 @@ copilot
 
 Keep Command Mesh open, then use Copilot CLI in that terminal. Two things feed the mesh:
 
-- **Repository hooks.** [.github/hooks/command-mesh.json](.github/hooks/command-mesh.json) sends session, prompt, tool, completion, and error events to the state file. The `preToolUse` hook always answers `allow`, and recording errors are swallowed, so telemetry never blocks a tool.
+- **Repository hooks.** [.github/hooks/command-mesh.json](.github/hooks/command-mesh.json) sends session, prompt, tool, completion, and error events to the state file. While an editor window is reading the session stream below, the hook leaves prompts and tool calls to it (the stream has the real model and call ids) and records only session start, completion, and errors. The `preToolUse` hook always answers `allow`, and recording errors are swallowed, so telemetry never blocks a tool.
 - **Session stream.** The extension tails Copilot CLI's machine-readable stream at `%USERPROFILE%\.copilot\session-state\*\events.jsonl`. That stream carries the selected model on assistant and tool events, so the mesh can show names such as `gpt-5.6-luna`. It does not scrape the terminal UI.
 
 The session stream is read for every Copilot CLI session on the machine, not only sessions started in this workspace.
@@ -121,13 +130,13 @@ This scrubbing is pattern-based and will not catch every secret. If you paste cr
 
 - **Colours mean agents.** Copilot is cyan, Codex is violet, Kiro is amber. Cores, station cards, routes, packets, the ticker, the activity bars, and the event feed all use the same colours. When two agents work on the same station, their packets alternate on one route.
 - **Station pips.** The three dots on each card show which agents have used that station (dim) and which are using it now (bright).
-- **Core states.** A working core pulses. An open but quiet core breathes slowly. A dashed grey core marked `OFFLINE` means the app is not running. The extension checks running processes (`Kiro`, `codex`, `copilot`) every 10 seconds.
+- **Core states.** A working core pulses. An open but quiet core breathes slowly. A dashed grey core marked `OFFLINE` means the app is not running. The extension checks running processes (`Kiro`, `codex`, `copilot`) every 10 seconds. Copilot also counts as running if one of its session logs changed in the last two minutes, and any agent with activity in the last two minutes is never shown offline.
 - **Turn complete.** When an agent finishes a turn, a shockwave rings out from its core.
 - **Errors.** A failed tool shakes its station card and flashes it red.
 - **Kiro credits.** Under the Kiro core: credits used by the last turn and the current session, with a `+N CR` burst when a turn finishes. The figures come from the `usage_summary` records in Kiro's session log (`~/.kiro/sessions/*/<session>/messages.jsonl`).
 - **Ticker.** The line under the bus types out the current operation, e.g. `> KIRO :: SHELL :: execute_pwsh`.
 
-The web dashboard adds per-agent models in the header, a Kiro credits KPI, and activity bars stacked by agent.
+Below the grid, both the panel and the web dashboard show each agent's model, a Kiro credits KPI, activity bars stacked by agent, and an event feed marked with each agent's colour. The web dashboard also lets you pause, filter by minute on the timeline, and expand an event to inspect it.
 
 With reduced motion turned on in your OS, the animations are off and the one-shot effects are hidden.
 
@@ -136,17 +145,17 @@ With reduced motion turned on in your OS, the animations are off and the one-sho
 | Station | When |
 | --- | --- |
 | You | prompts submitted to an agent |
-| Model | completed agent turns |
-| Memory | tools or paths whose names indicate memory or recall |
-| Files | file tools and file changes in the workspace |
-| Shell | terminal and command tools |
-| Network | web fetch, search, and HTTP tools |
-| Browser | Playwright and interactive browser automation |
+| Model | completed agent turns, and tools whose names match no other station |
+| Memory | tools whose names mention memory, remember, or recall |
+| Files | file tools (read, write, edit, replace, grep, glob, list) and file changes in the workspace |
+| Shell | terminal and command tools, and commands run in the editor's terminal |
+| Network | web fetch, search, HTTP, and (for Kiro and Copilot) browser tools |
+| Browser | Codex browser automation (Playwright, browser tabs) |
 | Agents | agent and subagent tools |
-| Skills | skill loading and skill-backed workflows |
-| Hooks | project hook activity and hook failures |
+| Skills | Codex reading skill files |
+| Hooks | Copilot CLI errors, and Codex calls to the Command Mesh hook scripts |
 
-Stations are chosen by matching tool names against keyword patterns, so an unusual tool name can land on an unexpected station.
+Stations are chosen by matching tool names against keyword patterns, and each source has its own patterns. An unusual tool name can land on an unexpected station. Kiro and Copilot browser tools currently land on Network, so Browser and Skills only light up for Codex.
 
 ## Troubleshooting
 
@@ -164,7 +173,7 @@ Stations are chosen by matching tool names against keyword patterns, so an unusu
 
 Each tool call is one entry. The start event opens it with status `run`, and the end event closes that same entry as `ok` or `err`:
 
-- **Kiro hook.** Matches on a tool call id when Kiro's payload includes one. Otherwise it closes the oldest open call with the same tool name.
+- **Kiro hook.** Kiro's hook payload has no tool call id, so the end closes the oldest open call with the same tool name. If a payload ever includes an id (`tool_use_id` and similar), the hook matches on that instead.
 - **Copilot CLI hook.** Closes the oldest open call with the same tool name. Used only when the extension's stream reader is not running.
 - **Copilot stream bridge.** Matches on Copilot's `toolCallId`.
 - **Terminal commands.** The finish closes the oldest open run of the same command.
@@ -181,7 +190,7 @@ Each hook closes only entries it created (marked with a `source` field), so writ
 
 Several processes write `state.json`: the Kiro hook, the Copilot CLI hook, and the extension in each open editor. To keep them from clobbering each other:
 
-- Each read-modify-write holds `state.json.lock`. A lock older than 3 seconds is treated as abandoned.
+- Each read-modify-write holds `state.json.lock`. A lock older than 3 seconds is treated as abandoned, and a writer that has waited 2 seconds goes ahead anyway.
 - Writes go to a temp file that is renamed over `state.json`, with retries. A writer never writes the file in place, so readers never see half a file.
 - If a writer cannot parse `state.json`, it skips its write rather than starting from an empty board. The panel keeps showing the last good board.
 - Events that already exist on the board (same id) are skipped, so a second reader cannot double them.
@@ -195,7 +204,7 @@ Remove-Item .kiro\command-mesh\state.json.*.tmp -ErrorAction SilentlyContinue
 
 ## Uninstall and reset
 
-- Uninstall **Command Mesh** from the Extensions view.
+- Uninstall **Command Mesh** from the Extensions view, or with `kiro --uninstall-extension local.command-mesh` / `code --uninstall-extension local.command-mesh`. The CLI can leave the folder behind in `~/.kiro/extensions` or `~/.vscode/extensions`; delete `local.command-mesh-0.1.0` there if it remains.
 - Delete `.kiro/command-mesh/` (and `.kiro/lot-map/` if it exists) to clear recorded activity.
 - Remove or disable `.kiro/hooks/command-mesh.json` and `.github/hooks/command-mesh.json` to stop the hooks from running.
 
@@ -206,10 +215,12 @@ Remove-Item .kiro\command-mesh\state.json.*.tmp -ErrorAction SilentlyContinue
 | `extension.js` | VS Code / Kiro extension: commands, panel, web dashboard, stream bridges, workspace watcher |
 | `futuristic-renderer.js` | Draws the operations grid as SVG |
 | `map-renderer.js` | Shared setup and classification helpers. Generated bundle of `hooks/map.ts` and `hooks/text.ts` from upstream Lot Map; edit the TypeScript sources and rebuild rather than editing this file by hand |
-| `dashboard.css` | Styles for the web dashboard |
+| `dashboard.css` | Styles for the panel's telemetry section and the web dashboard |
+| `test/harness.js` | Scripted multi-agent session with checks. See [Development](#development) |
+| `command-mesh-demo-v2.gif` | The demo animation at the top of this README |
 | `.kiro/` | Kiro hook config and hook script |
 | `.github/` | Copilot CLI hook config and hook script |
-| `.claude-plugin/`, `hooks/`, `types/` | Original Lot Map plugin for Claude Code, kept from upstream. Not packaged into the VSIX |
+| `.claude-plugin/`, `hooks/`, `types/`, `docs/` | Original Lot Map plugin for Claude Code and its screenshots, kept from upstream. Not packaged into the VSIX |
 | `package-vsix.ps1` | Builds the VSIX without `vsce` |
 
 ## Development
@@ -222,6 +233,19 @@ node --check futuristic-renderer.js
 node --check .kiro\command-mesh\hook.js
 node --check .github\command-mesh-copilot-hook.js
 ```
+
+### Test harness
+
+```powershell
+npm run harness   # ~15 s scripted session for all three agents; open the grid or web dashboard to watch
+npm test          # the same session at 10x speed, as a quick pipeline check
+```
+
+[test/harness.js](test/harness.js) drives the real Kiro hook and writes Copilot and Codex events straight to the board, since their real sources are session logs in your home folder. It then checks the results: each event recorded once, every call closed, failures marked, stations right, other agents' models kept, credits updated, and no temp or lock files left. Afterwards it removes its events and restores the counters and credits. Pass `--keep` to leave them on the board.
+
+The board holds 80 events, so the harness's events push your oldest real events out of the buffer, and cleanup cannot bring those back. Station totals are unaffected.
+
+### Packaging
 
 `package-vsix.ps1` copies only `extension.js`, `package.json`, `map-renderer.js`, `futuristic-renderer.js`, and `dashboard.css` into the VSIX. If you add a runtime file, add it to the script too.
 
