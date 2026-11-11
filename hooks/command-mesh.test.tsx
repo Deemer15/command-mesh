@@ -423,7 +423,7 @@ test('finished calls in a row at one station fold into one row, anything else st
   expect(foldRows(Array.from({ length: 40 }, (_, i) => entry(i % 2 ? 'files' : 'shell', i * 20))).length).toBe(16)
 })
 
-test('a spoke wears in with use and memory has a colour of its own', () => {
+test('a spoke wears in with use and memory has a color of its own', () => {
   const quiet = drawMap({ entries: [], counts: {} }, 1000, STRANGER)
   const busy = drawMap({ entries: [], counts: { files: 200, memory: 9 }, pushed: 4 }, 1000, STRANGER)
   expect(quiet).not.toContain('stroke-width="3.6"')

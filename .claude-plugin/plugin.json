@@ -20,7 +20,7 @@
     },
     "coreName": {
       "type": "string",
-      "title": "Name at the centre",
+      "title": "Name at the center",
       "default": "CLAUDE",
       "description": "What the circle in the middle of the map says, up to ten characters."
     },
@@ -75,14 +75,14 @@
     },
     "theme": {
       "type": "string",
-      "title": "Colours",
+      "title": "Colors",
       "options": [
         "auto",
         "dark",
         "light"
       ],
       "default": "auto",
-      "description": "The map's colours: dark, light, or auto, which is dark on a dark surface and light on a light one."
+      "description": "The map's colors: dark, light, or auto, which is dark on a dark surface and light on a light one."
     },
     "layout": {
       "type": "string",

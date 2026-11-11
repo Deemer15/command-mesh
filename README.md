@@ -3,7 +3,7 @@
 Live visual telemetry for Codex, Copilot, Kiro, and other coding agents. Command Mesh renders prompts, tools, files, terminals, browser activity, subagents, and model state as a dockable animated operations grid.
 
 <p align="center">
-  <img src="docs/command-mesh-demo.gif" alt="Command Mesh web dashboard: Copilot, Codex, and Kiro working at once, with colour-coded packets, a Kiro credits burst, and activity bars stacked by agent" width="100%">
+  <img src="docs/command-mesh-demo.gif" alt="Command Mesh web dashboard: Copilot, Codex, and Kiro working at once, with color-coded packets, a Kiro credits burst, and activity bars stacked by agent" width="100%">
 </p>
 
 <p align="center"><a href="docs/command-mesh-demo.mp4">Watch the full-resolution video (MP4)</a></p>
@@ -80,7 +80,7 @@ Several independent writers append events to one shared file, `.kiro/command-mes
 
 Kiro's hook payload does not include the model, so the Kiro hook reads `modelId` from the matching `~/.kiro/sessions/*/<session_id>/session.json`. When Kiro is set to **Auto**, that file stores `auto` and the server picks the model, so the `KIRO` core shows `auto`.
 
-The file keeps the last 80 events plus a running count per station. The centre of the grid is a three-provider bus with separate `COPILOT`, `CODEX`, and `KIRO` cores. Each core shows its own model name, how many of the buffered events are its own, and whether it is working, idle, or offline.
+The file keeps the last 80 events plus a running count per station. The center of the grid is a three-provider bus with separate `COPILOT`, `CODEX`, and `KIRO` cores. Each core shows its own model name, how many of the buffered events are its own, and whether it is working, idle, or offline.
 
 Existing `.kiro/lot-map/state.json` data from Lot Map is copied to the new location automatically.
 
@@ -130,15 +130,15 @@ This scrubbing is pattern-based and will not catch every secret. If you paste cr
 
 ## Reading the grid
 
-- **Colours mean agents.** Copilot is cyan, Codex is violet, Kiro is amber. Cores, station cards, routes, packets, the ticker, the activity bars, and the event feed all use the same colours. When two agents work on the same station, their packets alternate on one route.
+- **Colors mean agents.** Copilot is cyan, Codex is violet, Kiro is amber. Cores, station cards, routes, packets, the ticker, the activity bars, and the event feed all use the same colors. When two agents work on the same station, their packets alternate on one route.
 - **Station pips.** The three dots on each card show which agents have used that station (dim) and which are using it now (bright).
-- **Core states.** A working core pulses. An open but quiet core breathes slowly. A dashed grey core marked `OFFLINE` means the app is not running. The extension checks running processes (`Kiro`, `codex`, `copilot`) every 10 seconds. Copilot also counts as running if one of its session logs changed in the last two minutes, and any agent with activity in the last two minutes is never shown offline.
+- **Core states.** A working core pulses. An open but quiet core breathes slowly. A dashed gray core marked `OFFLINE` means the app is not running. The extension checks running processes (`Kiro`, `codex`, `copilot`) every 10 seconds. Copilot also counts as running if one of its session logs changed in the last two minutes, and any agent with activity in the last two minutes is never shown offline.
 - **Turn complete.** When an agent finishes a turn, a shockwave rings out from its core.
 - **Errors.** A failed tool shakes its station card and flashes it red.
 - **Kiro credits.** Under the Kiro core: credits used by the last turn and the current session, with a `+N CR` burst when a turn finishes. The figures come from the `usage_summary` records in Kiro's session log (`~/.kiro/sessions/*/<session>/messages.jsonl`).
 - **Ticker.** The line under the bus types out the current operation, e.g. `> KIRO :: SHELL :: execute_pwsh`.
 
-Below the grid, both the panel and the web dashboard show each agent's model, a Kiro credits KPI, activity bars stacked by agent, and an event feed marked with each agent's colour. The web dashboard also lets you pause, filter by minute on the timeline, and expand an event to inspect it.
+Below the grid, both the panel and the web dashboard show each agent's model, a Kiro credits KPI, activity bars stacked by agent, and an event feed marked with each agent's color. The web dashboard also lets you pause, filter by minute on the timeline, and expand an event to inspect it.
 
 With reduced motion turned on in your OS, the animations are off and the one-shot effects are hidden.
 

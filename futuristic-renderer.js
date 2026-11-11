@@ -1,7 +1,7 @@
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]))
 const stations = ['you','model','memory','files','shell','web','browser','agents','skills','hooks']
 const names = ['Operator','Model','Memory','Files','Terminal','Network','Browser','Agents','Skills','Hooks']
-// One colour per agent, used everywhere that agent shows up: cores, cards, routes, packets, ticker.
+// One color per agent, used everywhere that agent shows up: cores, cards, routes, packets, ticker.
 const PROVIDERS = ['copilot','codex','kiro']
 const COLORS = { copilot: '#53f4dd', codex: '#a28aff', kiro: '#ffb86b' }
 const RED = '#ff728f', IDLE = '#506b85', OFF = '#2b3d4e'
@@ -75,7 +75,7 @@ function drawMap(board, now, setup) {
     const runProviders=[...new Set(runningEvents.map(providerFor))]
     const lastProvider=last ? providerFor(last) : ''
     const bad=last && ['err','block'].includes(last.status)
-    // tone: whose colour this station wears right now. color: tone, unless it errored or is idle.
+    // tone: whose color this station wears right now. color: tone, unless it errored or is idle.
     const tone=running ? COLORS[runProviders.at(-1)] : last ? COLORS[lastProvider] : IDLE
     const color=bad ? RED : running ? tone : IDLE
     const count=board.counts?.[station]??events.length
