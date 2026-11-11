@@ -3,7 +3,7 @@
 Live visual telemetry for Codex, Copilot, Kiro, and other coding agents. Command Mesh renders prompts, tools, files, terminals, browser activity, subagents, and model state as a dockable animated operations grid.
 
 <p align="center">
-  <img src="command-mesh-demo.gif" alt="Command Mesh visualizing live Copilot, Codex, and Kiro activity" width="100%">
+  <img src="command-mesh-demo-v2.gif" alt="Command Mesh visualizing live Copilot, Codex, and Kiro activity" width="100%">
 </p>
 
 <p align="center"><em>One live command surface. Every agent, tool, and signal in motion.</em></p>
