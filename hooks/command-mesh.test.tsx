@@ -6,9 +6,9 @@ import { classify, clean, drawMap, firstLine, foldRows, formatMs, memoryIds, rou
 import { stringsFor } from './text'
 
 const PANE = {
-  plugin: 'lot-map',
+  plugin: 'command-mesh',
   component: 'Pane',
-  requestId: 'lot-map',
+  requestId: 'command-mesh',
   props: { title: 'Map', isFocused: false, bodyColumns: 60, placement: 'dock', scroll: { offset: 0, bodyRows: 40 }, view: {} },
 } as const
 
@@ -240,7 +240,7 @@ test('with no options set the map speaks English and shows no record numbers', a
 
 test('a call shows on the pane, on every surface', { options: OWN }, async ($, on) => {
   on('clock.now', () => ({ value: 1_000_000 }))
-  on('command.register', () => ({ value: { command: 'lot-map' } }))
+  on('command.register', () => ({ value: { command: 'command-mesh' } }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('tool.call', () => ({ result: {} }))

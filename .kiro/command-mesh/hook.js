@@ -2,7 +2,7 @@ const fs = require('fs')
 const path = require('path')
 
 const root = process.cwd()
-const dir = path.join(root, '.kiro', 'lot-map')
+const dir = path.join(root, '.kiro', 'command-mesh')
 const file = path.join(dir, 'state.json')
 const kind = process.argv[2] || 'event'
 let input = ''

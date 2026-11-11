@@ -39,6 +39,6 @@ export type Board = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'lot-map': { board: Shaped<Board> }
+    'command-mesh': { board: Shaped<Board> }
   }
 }

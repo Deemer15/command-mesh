@@ -5,12 +5,12 @@ import type { Board, Entry, StationId, Status } from '../types'
 import { STATIONS, classify, clean, describeNow, drawMap, firstLine, foldRows, formatMs, memoryIds, setupFrom, shortModel } from './map'
 import type { Setup } from './map'
 
-const PANE = 'lot-map'
+const PANE = 'command-mesh'
 const KEEP = 80
 const CREW = 12
 
 // Change the tag when a field of Entry or Board changes: it declines what an earlier version stored.
-const board = atom({ plugin: 'lot-map', key: 'board' } as const, { entries: [], counts: {} } as Board, { shape: 'board-2' })
+const board = atom({ plugin: 'command-mesh', key: 'board' } as const, { entries: [], counts: {} } as Board, { shape: 'board-2' })
 
 const newId = (now: number): string => `${now.toString(36)}${Math.random().toString(36).slice(2, 7)}`
 
@@ -130,7 +130,7 @@ export const register: Register = (on, options) => {
   let modelKey = 'model'
 
   on('session.start', async ($, e, next) => {
-    await quietly(() => $.command.register({ name: 'lot-map', description: t.command }))
+    await quietly(() => $.command.register({ name: 'command-mesh', description: t.command }))
     void quietly(() => $.ui.open({ id: PANE, title: t.title }))
     await quietly(async () => {
       modelKey = `model:${e.cwd}`
@@ -140,7 +140,7 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  on('command.run', { command: 'lot-map' }, async $ => {
+  on('command.run', { command: 'command-mesh' }, async $ => {
     const opened = await $.ui.open({ id: PANE, title: t.title })
     return { text: opened.isPlaced ? t.opened : t.cannotOpen(String(opened.reason)) }
   })

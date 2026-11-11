@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run Kiro Lot Map",
+      "name": "Run Command Mesh",
       "type": "extensionHost",
       "request": "launch",
       "args": [

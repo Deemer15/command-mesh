@@ -1,7 +1,7 @@
 {
-  "name": "lot-map",
+  "name": "command-mesh",
   "version": "0.3.1",
-  "description": "A live map beside the chat: memory, files, shell, web, model, agents, skills and hooks light up as they are used",
+  "description": "A live command mesh beside the chat: memory, files, shell, web, model, agents, skills and hooks light up as they are used",
   "license": "MIT",
   "types": "./types/index.d.ts",
   "userConfig": {

@@ -20,6 +20,7 @@ const recentFileEvents = new Map()
 
 const ignoredWorkspacePrefixes = [
   '.git/',
+  '.kiro/command-mesh/',
   '.kiro/lot-map/',
   '.playwright-cli/',
   '.vscode/',
@@ -28,14 +29,27 @@ const ignoredWorkspacePrefixes = [
 
 function shouldIgnoreWorkspaceFile(relative) {
   const normalized = String(relative).replace(/\\/g, '/').replace(/^\.\//, '')
-  return normalized === '.kiro/lot-map'
+  return normalized === '.kiro/command-mesh'
+    || normalized === '.kiro/lot-map'
     || ignoredWorkspacePrefixes.some(prefix => normalized === prefix.slice(0, -1) || normalized.startsWith(prefix))
     || /(^|\/)state\.json(?:\..*\.tmp)?$/.test(normalized)
-    || /(^|\/)(?:lot-map-preview\.png|lot-map-\d+\.\d+\.\d+\.(?:vsix|zip))$/.test(normalized)
+    || /(^|\/)(?:command-mesh-preview\.png|command-mesh-\d+\.\d+\.\d+\.(?:vsix|zip))$/.test(normalized)
+}
+
+function commandMeshStateFile(root) {
+  const current = path.join(root, '.kiro', 'command-mesh', 'state.json')
+  const legacy = path.join(root, '.kiro', 'lot-map', 'state.json')
+  if (!fs.existsSync(current) && fs.existsSync(legacy)) {
+    try {
+      fs.mkdirSync(path.dirname(current), { recursive: true })
+      fs.copyFileSync(legacy, current)
+    } catch {}
+  }
+  return current
 }
 
 function readBoard(root) {
-  const stateFile = path.join(root, '.kiro', 'lot-map', 'state.json')
+  const stateFile = commandMeshStateFile(root)
   let state = { entries: [], counts: {} }
   try { state = JSON.parse(fs.readFileSync(stateFile, 'utf8')) } catch {}
   return {
@@ -55,8 +69,8 @@ function readBoard(root) {
 }
 
 function activate(context) {
-  context.subscriptions.push(vscode.commands.registerCommand('lotMap.open', () => openMap(context)))
-  context.subscriptions.push(vscode.commands.registerCommand('lotMap.openWeb', () => openWebDashboard()))
+  context.subscriptions.push(vscode.commands.registerCommand('commandMesh.open', () => openMap(context)))
+  context.subscriptions.push(vscode.commands.registerCommand('commandMesh.openWeb', () => openWebDashboard()))
   context.subscriptions.push(vscode.workspace.onDidCreateFiles(e => recordWorkspaceFiles('created', e.files)))
   context.subscriptions.push(vscode.workspace.onDidDeleteFiles(e => recordWorkspaceFiles('deleted', e.files)))
   context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(document => recordWorkspaceFiles('saved', [document.uri])))
@@ -69,9 +83,9 @@ function activate(context) {
   }
 
   function webPage() {
-    return `<!doctype html><meta charset="utf-8"><title>Lot Map</title>
+    return `<!doctype html><meta charset="utf-8"><title>Command Mesh</title>
   <style>${dashboardCss}</style>
-  <main><header><strong>Lot Map</strong><span id="summary" class="dim"></span></header><section id="map"></section><section id="dashboard" class="telemetry"></section></main>
+  <main><header><strong>Command Mesh</strong><span id="summary" class="dim"></span></header><section id="map"></section><section id="dashboard" class="telemetry"></section></main>
   <script>
   const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   let paused=false,filter='all',latestState,latestSvg='',selectedId='',minuteFilter=null;
@@ -93,7 +107,7 @@ function activate(context) {
   async function openWebDashboard() {
     const folder = vscode.workspace.workspaceFolders?.[0]
     if (!folder) {
-      vscode.window.showErrorMessage('Lot Map requires an open workspace.')
+      vscode.window.showErrorMessage('Command Mesh requires an open workspace.')
       return
     }
     if (!webServer) {
@@ -113,7 +127,7 @@ function activate(context) {
       })
     }
     const address = webServer.address()
-    if (!address || typeof address === 'string') throw new Error('Lot Map web server did not start.')
+    if (!address || typeof address === 'string') throw new Error('Command Mesh web server did not start.')
     await vscode.env.openExternal(vscode.Uri.parse(`http://127.0.0.1:${address.port}/`))
   }
   const folder = vscode.workspace.workspaceFolders?.[0]
@@ -142,7 +156,7 @@ function recordFilesystemEvent(action, root, relative) {
       if (now - seenAt > 5000) recentFileEvents.delete(eventKey)
     }
   }
-  const stateFile = path.join(root, '.kiro', 'lot-map', 'state.json')
+  const stateFile = commandMeshStateFile(root)
   appendEntries(stateFile, [{
     id: `${now.toString(36)}${Math.random().toString(36).slice(2, 7)}`,
     station: 'files',
@@ -155,7 +169,7 @@ function recordFilesystemEvent(action, root, relative) {
 
 function stateFileFor(uri) {
   const folder = vscode.workspace.getWorkspaceFolder(uri)
-  return folder ? path.join(folder.uri.fsPath, '.kiro', 'lot-map', 'state.json') : undefined
+  return folder ? commandMeshStateFile(folder.uri.fsPath) : undefined
 }
 
 function appendEntries(stateFile, entries) {
@@ -250,7 +264,7 @@ function recordCopilotEvent(root, event, getLatestModelTime, setLatestModelTime)
 
   const type = String(event.type || '')
   const data = event.data || {}
-  const stateFile = path.join(root, '.kiro', 'lot-map', 'state.json')
+  const stateFile = commandMeshStateFile(root)
   if (type === 'user.message') {
     const prompt = redact(data.content || data.transformedContent || '')
     if (prompt) appendCopilotEntry(stateFile, {
@@ -392,7 +406,7 @@ function recordCodexEvent(root, session, event, isWorkspace) {
     return
   }
   if (!session.matches) return
-  const stateFile = path.join(root, '.kiro', 'lot-map', 'state.json')
+  const stateFile = commandMeshStateFile(root)
   const now = Date.parse(event.timestamp || '') || Date.now()
   if (event.type === 'event_msg' && payload.type === 'task_started') {
     const turnId = String(payload.turn_id || payload.root_turn_id || now)
@@ -426,7 +440,7 @@ function classifyCodexTool(name, input) {
   if (/(skill\.md|[\\/]skills[\\/])/.test(lower)) return 'skills'
   if (/(playwright-cli|cua_repl|createbrowsertab|gettab\s*\()/.test(lower)) return 'browser'
   if (/(web__run|tools\.web|search_query|image_query|web_fetch|fetch\s*\()/.test(lower)) return 'web'
-  if (/(lot-map-(?:copilot-)?hook|[\\/]hook\.js)/.test(lower)) return 'hooks'
+  if (/(command-mesh-(?:copilot-)?hook|lot-map-(?:copilot-)?hook|[\\/]hook\.js)/.test(lower)) return 'hooks'
   if (/(memory|remember|recall)/.test(lower)) return 'memory'
   if (/(apply_patch|read|write|edit|file|glob|grep)/.test(lower)) return 'files'
   if (/(shell|terminal|command|bash|powershell|exec|run)/.test(lower)) return 'shell'
@@ -479,7 +493,7 @@ function firstLine(value, fallback) {
 }
 
 function setBoardModel(root, model, provider) {
-  const stateFile = path.join(root, '.kiro', 'lot-map', 'state.json')
+  const stateFile = commandMeshStateFile(root)
   let state = { entries: [], counts: {} }
   try { state = JSON.parse(fs.readFileSync(stateFile, 'utf8')) } catch {}
   state.model = String(model).replace(/[\r\n]+/g, ' ').slice(0, 100)
@@ -540,7 +554,7 @@ function recordWorkspaceFiles(action, uris) {
 function recordShell(status, commandLine) {
   const folder = vscode.workspace.workspaceFolders?.[0]
   if (!folder) return
-  appendEntries(path.join(folder.uri.fsPath, '.kiro', 'lot-map', 'state.json'), [{
+  appendEntries(commandMeshStateFile(folder.uri.fsPath), [{
     id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`,
     station: 'shell',
     label: `${status} ${String(commandLine || 'terminal').split(/\s+/)[0]}`.slice(0, 100),
@@ -553,19 +567,19 @@ function recordShell(status, commandLine) {
 function openMap(context) {
   const folder = vscode.workspace.workspaceFolders?.[0]
   if (!folder) {
-    vscode.window.showErrorMessage('Lot Map requires an open workspace.')
+    vscode.window.showErrorMessage('Command Mesh requires an open workspace.')
     return
   }
   if (panel) {
     panel.reveal(vscode.ViewColumn.Beside)
     return
   }
-  panel = vscode.window.createWebviewPanel('lotMap', 'Lot Map', vscode.ViewColumn.Beside, {
+  panel = vscode.window.createWebviewPanel('commandMesh', 'Command Mesh', vscode.ViewColumn.Beside, {
     enableScripts: true,
     retainContextWhenHidden: true,
   })
   panel.webview.html = html(panel.webview, context.extensionUri)
-  const stateFile = path.join(folder.uri.fsPath, '.kiro', 'lot-map', 'state.json')
+  const stateFile = commandMeshStateFile(folder.uri.fsPath)
   fs.mkdirSync(path.dirname(stateFile), { recursive: true })
   const send = () => {
     let state = { entries: [], counts: {} }
@@ -597,7 +611,7 @@ function html(webview, extensionUri) {
 <style>
 body{margin:0;padding:16px;background:var(--vscode-editor-background);color:var(--vscode-editor-foreground);font:12px ui-monospace,SFMono-Regular,Consolas,monospace}
 svg{display:block;width:100%;max-height:70vh}.telemetry{border:1px solid var(--vscode-widget-border);border-radius:11px;background:linear-gradient(145deg,var(--vscode-sideBar-background),var(--vscode-editor-background));padding:12px;margin-top:8px;box-shadow:0 10px 24px #0004}.telemetry-head{display:flex;justify-content:space-between;margin-bottom:9px}.eyebrow{opacity:.65;font-size:9px;letter-spacing:.16em}.model{color:#e1ac6e}.kpis{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.kpi{background:var(--vscode-editor-background);border:1px solid var(--vscode-widget-border);border-radius:7px;padding:7px;min-width:0;cursor:pointer}.kpi:hover,.kpi.active{border-color:#c79d6d}.kpi b{display:block;color:#e1ac6e;font-size:15px;margin-top:3px}.kpi span{opacity:.6;font-size:9px;text-transform:uppercase;letter-spacing:.08em}.spark{height:27px;display:flex;align-items:end;gap:2px;margin:11px 0 7px;padding:0 2px;border-bottom:1px solid var(--vscode-widget-border)}.bar{flex:1;background:linear-gradient(#c79d6d,#6d5139);border-radius:3px 3px 0 0;min-height:2px}.route{color:#c5a77d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.now{border-top:1px solid var(--vscode-widget-border);margin-top:9px;padding-top:8px}.detail{border-top:1px solid var(--vscode-widget-border);margin-top:9px;padding-top:8px}.detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}.detail-card{background:var(--vscode-editor-background);border-radius:5px;padding:6px}.detail-card span{opacity:.6;font-size:9px;text-transform:uppercase}.detail-card b{display:block;color:#e1ac6e;margin-top:3px}.topops{margin-top:7px;opacity:.75}.feed{margin-top:7px;line-height:1.5;max-height:120px;overflow:auto}.row{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.72}.run{color:#e1ac6e;opacity:1}.err{color:#e8654f;opacity:1}.dim{opacity:.65}.head{display:flex;justify-content:space-between;margin-bottom:8px}.title{font-weight:600}@media(max-width:600px){.kpis,.detail-grid{grid-template-columns:repeat(3,1fr)}}
-${dashboardCss}</style></head><body><div class="head"><span class="title">Lot Map</span><span id="summary" class="dim"></span></div><div id="map"></div><div id="dashboard" class="telemetry"></div>
+${dashboardCss}</style></head><body><div class="head"><span class="title">Command Mesh</span><span id="summary" class="dim"></span></div><div id="map"></div><div id="dashboard" class="telemetry"></div>
 <script nonce="${nonce}">
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))
 function formatDuration(ms){const s=Math.floor(ms/1000);return s<60?s+'s':Math.floor(s/60)+'m '+s%60+'s'}

@@ -27,7 +27,7 @@ const station = kind === 'prompt' ? 'you' : kind === 'agent-stop' ? 'model'
   : kind === 'error' ? 'hooks' : classify(tool, event)
 const status = kind === 'tool-start' ? 'run' : kind === 'error' ? 'err' : 'ok'
 const root = process.cwd()
-const stateFile = path.join(root, '.kiro', 'lot-map', 'state.json')
+const stateFile = path.join(root, '.kiro', 'command-mesh', 'state.json')
 let state = { entries: [], counts: {} }
 try { state = JSON.parse(fs.readFileSync(stateFile, 'utf8')) } catch {}
 const now = Date.now()

@@ -4,6 +4,8 @@
 .mcpb-cache/
 .playwright-cli/
 lot-map-preview.png
+command-mesh-preview.png
 *.vsix
 .kiro/lot-map/state.json*
+.kiro/command-mesh/state.json*
 .vscode/settings.json

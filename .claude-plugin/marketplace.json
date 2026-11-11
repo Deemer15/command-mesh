@@ -1,11 +1,11 @@
 {
-  "name": "lot-map",
+  "name": "command-mesh",
   "owner": {
-    "name": "alexeyw"
+    "name": "Deemer15"
   },
   "plugins": [
     {
-      "name": "lot-map",
+      "name": "command-mesh",
       "source": "./"
     }
   ]

@@ -1,10 +1,10 @@
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
-$stage = Join-Path $env:TEMP "kiro-lot-map-vsix"
-$vsix = Join-Path $root "lot-map-0.1.0.vsix"
-$zip = Join-Path $root "lot-map-0.1.0.zip"
+$stage = Join-Path $env:TEMP "command-mesh-vsix"
+$vsix = Join-Path $root "command-mesh-0.1.0.vsix"
+$zip = Join-Path $root "command-mesh-0.1.0.zip"
 
-if ([IO.Path]::GetFullPath($stage) -ne [IO.Path]::GetFullPath((Join-Path $env:TEMP 'kiro-lot-map-vsix'))) { throw 'Unexpected staging path' }
+if ([IO.Path]::GetFullPath($stage) -ne [IO.Path]::GetFullPath((Join-Path $env:TEMP 'command-mesh-vsix'))) { throw 'Unexpected staging path' }
 if (Test-Path $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
 if (Test-Path $vsix) { Remove-Item -LiteralPath $vsix -Force }
 if (Test-Path $zip) { Remove-Item -LiteralPath $zip -Force }
@@ -20,9 +20,9 @@ $manifest = @'
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0">
   <Metadata>
-    <Identity Id="local.kiro-lot-map" Version="0.1.0" Publisher="local" Language="en-us" />
-    <DisplayName>Kiro Lot Map</DisplayName>
-    <Description>A live map of Kiro agent activity.</Description>
+    <Identity Id="local.command-mesh" Version="0.1.0" Publisher="local" Language="en-us" />
+    <DisplayName>Command Mesh</DisplayName>
+    <Description>Live visual telemetry for Codex, Copilot, Kiro, and other coding agents.</Description>
     <Categories>Other</Categories>
     <GalleryFlags>Public</GalleryFlags>
     <Properties />
