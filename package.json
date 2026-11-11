@@ -1,0 +1,39 @@
+{
+  "name": "lot-map",
+  "displayName": "Lot Map",
+  "description": "A live map of agent activity in VS Code and Kiro.",
+  "version": "0.1.0",
+  "publisher": "local",
+  "author": "Jeremy Hamilton",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Deemer15/lot-map.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "main": "./extension.js",
+  "activationEvents": [
+    "*"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "lotMap.open",
+        "title": "Lot Map: Open Work Map"
+      },
+      {
+        "command": "lotMap.openWeb",
+        "title": "Lot Map: Open Web Dashboard"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "lotMap.open"
+        }
+      ]
+    }
+  }
+}

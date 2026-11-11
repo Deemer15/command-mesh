@@ -2,3 +2,8 @@
 *.log
 .claude-plugin/types/
 .mcpb-cache/
+.playwright-cli/
+lot-map-preview.png
+*.vsix
+.kiro/lot-map/state.json*
+.vscode/settings.json

@@ -1,0 +1,12 @@
+.git/**
+.claude-plugin/**
+docs/**
+hooks/**
+types/**
+.kiro/lot-map/state.json
+.playwright-cli/**
+lot-map-preview.png
+.vscode/**
+map-renderer.js
+README.md
+LICENSE

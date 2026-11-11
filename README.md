@@ -1,131 +1,78 @@
-# lot-map
+# Lot Map
 
-A mod for Claude Code: a live map of the work, in a pane beside the chat. Every tool call, model step, hook and skill sends a pulse from the centre to its station, so you see memory, files, shell, web and agents at work instead of reading a list of commands.
+A VS Code and Kiro port of [lot-map](https://github.com/alexeyw/lot-map): a live map of agent work in a dockable panel beside the chat. Kiro hooks record prompts, tool calls, file saves, and completed turns; VS Code displays the same shared activity state.
 
-![The map during a work session](docs/demo.gif)
+## Attribution
 
-*A made-up session replayed through the mod's own drawing code. [Video (MP4)](docs/demo.mp4).*
+The original Lot Map was created by [Aleksei Volodin](https://github.com/alexeyw) and is used under the MIT License. This VS Code, Codex, Copilot, and Kiro edition includes additional code and modifications by Jeremy Hamilton.
 
-## Install
+## Install in Kiro
 
-At the prompt of a terminal session:
+1. Open this folder in Kiro.
+2. The reliable install path is to run `powershell -ExecutionPolicy Bypass -File .\package-vsix.ps1`.
+3. In Kiro, open the Command Palette and choose **Extensions: Install from VSIX...**, then select `lot-map-0.1.0.vsix`.
+4. Reload Kiro. Run **Lot Map: Open Work Map** from the Command Palette.
 
+`F5` may open an extension-host window, but Kiro's debugger does not always register local workspace extensions. Installing the VSIX avoids that limitation.
+5. Keep the workspace hook file [.kiro/hooks/lot-map.json](.kiro/hooks/lot-map.json) enabled.
+
+## Install in VS Code
+
+1. Run the same packaging command from the integrated terminal.
+2. Open VS Code's Command Palette and choose **Extensions: Install from VSIX...**.
+3. Select `lot-map-0.1.0.vsix`, reload VS Code, then run **Lot Map: Open Work Map**.
+4. For a larger browser view, run **Lot Map: Open Web Dashboard**. It opens a local-only dashboard at `127.0.0.1` using the same live state and exact upstream renderer.
+
+The extension runs in both editors from the same VSIX. VS Code does not expose Copilot's private agent/tool event stream to extensions. In VS Code, Lot Map tracks the live observable work instead: file changes, saves, creates, deletes, and terminal shell execution. Kiro additionally provides prompt and tool events through its hook integration.
+
+The center is a permanent three-provider bus with separate `COPILOT`, `CODEX`, and `KIRO` cores. Each core keeps its own model metadata, buffered event count, and live/idle state.
+
+The hook bridge writes only station names, short labels, timestamps, and counts to `.kiro/lot-map/state.json`. It does not persist prompt text, tool arguments, file contents, or credentials.
+
+## Live GitHub Copilot CLI bridge
+
+For full agent activity in VS Code, run GitHub Copilot CLI from the VS Code integrated terminal. The repository hook configuration at [.github/hooks/lot-map.json](.github/hooks/lot-map.json) sends Copilot CLI session, prompt, tool, completion, and error events to the shared Lot Map state file.
+
+```powershell
+copilot
 ```
-/plugin install lot-map --marketplace alexeyw/lot-map
-```
 
-Answer `y` to add the marketplace, then choose a scope. From a shell:
+Keep Lot Map open, then use Copilot CLI in that terminal. The extension also tails Copilot CLI's local machine-readable session stream at `%USERPROFILE%\.copilot\session-state\*\events.jsonl`. That stream contains the actual selected model on assistant and tool events, so the map can show model names such as `gpt-5.6-luna`; it does not scrape the rendered terminal UI.
 
-```bash
-claude plugin install lot-map --marketplace alexeyw/lot-map
-```
+This is separate from the built-in Copilot Chat panel: VS Code does not expose that panel's private event stream to extensions. The bridge intentionally stores only the model name, event type, station, short tool name, status, and timestamps.
 
-In the desktop app: click **+** next to the prompt box, then **Plugins**, **Add marketplace** with `alexeyw/lot-map`, then **Add plugin**.
+## Live ChatGPT / Codex bridge
 
-The pane opens by itself when a session starts. In a terminal it needs at least 144 columns and draws text only; otherwise type `/lot-map`. Built and tested on Claude Code 2.1.321 on macOS; users report it working on Windows as well.
+Lot Map also follows local Codex sessions from `%USERPROFILE%\.codex\sessions`. Sign in to Codex with the ChatGPT account that owns your eligible Plus or Pro plan, then use Codex in this workspace. The dedicated `CODEX` core records turn, model, tool, completion, and station metadata without replacing the other provider cores.
+
+The bridge only follows sessions whose working directory matches the open workspace. It does not copy prompt text, tool arguments, tool output, response text, OAuth tokens, or other credentials into Lot Map state.
 
 ## What lights up
 
 | Station | When |
 | --- | --- |
-| You | your messages, questions and files sent to you |
-| Model | each model request, context compaction |
-| Memory | Claude Code's memory folder, plus whatever you name in the options |
-| Files | Read, Write, Edit, Grep, Glob, and shell commands that work on files and nothing else: they read, search, move, delete or edit in place (`cat`, `grep`, `mv`, `sed -i`, `tee`, `find … -delete`) |
-| Shell | every other shell command |
-| Network | web fetch and search, MCP servers, and shell commands known to reach the network: `curl`, `gh`, `ssh`, `rsync`, `git push`, `npm install`, `docker pull` and the like, also inside `$(…)` |
-| Browser | browser tools |
-| Agents | subagents and workflows; their own calls start from this station |
-| Skills | skills and tool search |
-| Hooks | settings hooks that refuse a call, ask for permission, add context or take a moment |
+| You | prompts submitted to Kiro |
+| Model | completed Kiro turns |
+| Memory | tools or paths whose names indicate memory/recall |
+| Files | file tools and saved files |
+| Shell | terminal and command tools |
+| Network | web fetch, search, and HTTP tools |
+| Browser | Playwright and interactive browser automation |
+| Agents | agent and subagent tools |
+| Skills | skill loading and skill-backed workflows |
+| Hooks | project hook activity and hook failures |
 
-The shell stations go by the command's name, not by what it does: a script that opens a connection itself, such as `python -c "…"`, shows as Shell.
+## Development
 
-A pulse flies out when something starts and returns when it ends. Refusals and errors turn red.
+The extension has no runtime dependencies. Validate the bridge with:
 
-## Reading the map
-
-- **The route.** A thin line joins the last few stations the main loop went through, in order, and its newest leg draws itself. Model steps are left out, or every leg would pass through Model.
-- **Worn spokes.** A spoke grows thicker and brighter the more its station is used, so at the end of a session the map shows where the work went.
-- **How long.** Two clock hands grow around a station while a call runs: the inner one goes round in a minute, the outer one in ten.
-- **Several at once.** Calls that start together fly side by side, and the station carries their number, such as `×3`.
-- **What went wrong.** A red dot with a count stays on a station from an error or a refusal until your next message.
-- **Memory.** It has a colour of its own. A solid pulse is a memory Claude asked for; a hollow one on a dashed line is what a hook brought unasked. Under the station, the plain number counts the first and `↓` the second.
-- **The context window.** The ring around the centre fills as the session goes, with the percentage above the name. It turns amber at 70% and red at 90%.
-- **A change of model.** The centre and the Model station ring for a few seconds, and the feed gets a row such as `opus 5.5 → fable 5.2`. This also happens when a session starts on a different model from the last session in the same folder.
-- **Subagents.** Each one still at work circles the Agents station as a small dot, and its calls start from there.
-- **The answer.** One wide ring leaves the centre when the answer is ready.
-
-Below the map are the current action with the context percentage, and the last 16 rows: `●` running, `·` done, `✕` failed or blocked, `◆` a change of model. Finished calls that follow one another at one station fold into one row, marked `+2` for the two it stands for besides the one named.
-
-| At work | Subagents | A hook refuses |
-| --- | --- | --- |
-| ![At work](docs/map-working.png) | ![Subagents](docs/map-agents.png) | ![A hook refuses](docs/map-blocked.png) |
-
-| A change of model | After the answer | Light colours |
-| --- | --- | --- |
-| ![A change of model](docs/map-switch.png) | ![After the answer](docs/map-after.png) | ![Light colours](docs/map-light.png) |
-
-## Options
-
-The install offers them on a screen. Later, use `/config` in a terminal or `claude plugin configure`, then restart the session.
-
-| Option | Default | Meaning |
-| --- | --- | --- |
-| `language` | `en` | `en`, `ru`, `es`, `fr` or `de` |
-| `coreName` | `CLAUDE` | what the circle in the middle says, up to ten characters |
-| `memoryServers` | `memory` | MCP servers whose tools light Memory |
-| `memoryCommands` | none | shell commands or scripts that light Memory; a name counts when it is the command itself or begins with it and `-`, `_` or `.`, so `recall` also names `recall-sync.py` |
-| `memorySubcommands` | none | words after a memory command that the map may show, such as `add` or `search`; without them the command goes by its own name |
-| `memoryPaths` | none | parts of a path that make a file a memory |
-| `memoryLabels` | none | short names for memory tools, each as `tool=name` |
-| `hookRecords` | `false` | turn on if a hook of yours adds memory records numbered like `[#123]`; they appear on Memory by number only. Such a number in the text of any hook counts, not only a memory hook's |
-| `hookReasons` | `false` | show the first line of a hook's refusal, up to 72 characters; off, the map says only which tool was stopped |
-| `theme` | `auto` | the map's colours: `dark`, `light`, or `auto`, which is dark on a dark surface and light on a light one |
-| `layout` | `you-top` | where you are on the map: `you-top`, or `you-bottom`, which turns the ring half a turn so that you are at the bottom and the network and the browser at the top |
-
-For example, Russian labels and your own memory server:
-
-```bash
-echo '{"language":"ru","memoryServers":"my-memory"}' | claude plugin configure lot-map@lot-map --values-stdin
+```powershell
+node --check extension.js
+node --check .kiro\lot-map\hook.js
+node --check .github\lot-map-copilot-hook.js
 ```
 
-Lists are written with commas.
-
-| Russian labels | `layout` set to `you-bottom` |
-| --- | --- |
-| <img src="docs/map-russian.png" width="320" alt="The map with Russian labels"> | <img src="docs/map-turned.png" width="320" alt="The map turned, with the person at the bottom"> |
-
-## What it shows and what it keeps
-
-The mod makes no network requests, reads no files, runs no processes, calls no model and adds nothing to the conversation. Its rows live only for the session.
-
-Like any mod that follows tool calls, it is handed every call's whole input, including command lines and the text written to files. It takes names from that and nothing else; the code that does so is `classify` in `hooks/map.ts`. A marketplace added from this repository follows its `main` branch, so an update brings whatever is there: read the diff before updating if that matters to you.
-
-It asks Claude Code for one thing: how full the context window is, after each model step. Between sessions it keeps one thing, the name of the model last used in each folder, so that it can show a change. Each is stored under the folder's full path, in Claude Code's own store for the plugin.
-
-A label holds a name, never content:
-
-- a file: the last two parts of its path;
-- a web address: the host alone, without a login, password, path or query; an address that can be read two ways shows only its scheme;
-- a shell command: the short description Claude wrote for it, or the command's name, never the command line;
-- a memory call: the tool's name and a record number or short identifier, never the text or the query;
-- a memory command: its name, and the word after it only if you listed that word in `memorySubcommands`;
-- a subagent: the short description it was started with;
-- a hook's refusal: the name of the tool it stopped. Its first line shows only with `hookReasons` on, because a refusal may quote what the hook found.
-
-Control characters are taken out of every label before it is drawn.
-
-A fault on the map never reaches a tool call or a model turn.
-
-## Developing
-
-```bash
-claude plugin test .
-claude plugin validate .
-```
-
-Words live in `hooks/text.ts`; a new language is one more table there and one more value of `language` in `.claude-plugin/plugin.json`.
+Kiro hook event names and payloads can evolve. The bridge deliberately tolerates missing fields and sanitizes labels before writing state.
 
 ## License
 
