@@ -4,7 +4,7 @@
     {
       "name": "command-mesh-prompt",
       "description": "Record Kiro prompts in the command mesh.",
-      "trigger": "PromptSubmit",
+      "trigger": "UserPromptSubmit",
       "action": { "type": "command", "command": "node .kiro/command-mesh/hook.js prompt" }
     },
     {
@@ -22,13 +22,13 @@
     {
       "name": "command-mesh-file-save",
       "description": "Record files saved by Kiro in the command mesh.",
-      "trigger": "FileSave",
+      "trigger": "PostFileSave",
       "action": { "type": "command", "command": "node .kiro/command-mesh/hook.js file" }
     },
     {
       "name": "command-mesh-stop",
       "description": "Record completed Kiro tasks in the command mesh.",
-      "trigger": "AgentStop",
+      "trigger": "Stop",
       "action": { "type": "command", "command": "node .kiro/command-mesh/hook.js stop" }
     }
   ]

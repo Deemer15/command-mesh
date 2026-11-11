@@ -14,6 +14,10 @@
     "vscode": "^1.85.0"
   },
   "main": "./extension.js",
+  "scripts": {
+    "harness": "node test/harness.js",
+    "test": "node test/harness.js --fast"
+  },
   "activationEvents": [
     "*"
   ],
